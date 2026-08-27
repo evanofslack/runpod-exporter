@@ -1,6 +1,6 @@
 # 0002 — monitoring stack: Grafana dashboard + docker-compose example
 
-Status: in-progress (Stage 1 done — needs browser verification, see decisions log)
+Status: in-progress (Stage 2 done — needs browser verification, see decisions log)
 Scope: a docker-compose stack (prometheus + grafana + runpod-exporter) that anyone
 cloning this repo can bring up and immediately see real dashboards, plus the Grafana
 dashboard itself, committed as JSON and auto-provisioned — no manual import. Builds on
@@ -340,3 +340,26 @@ unaffected and untouched by this spec. What can be verified without a browser:
   sensibly, whether `$pod_id`/`$endpoint_id` actually populate from real label
   values, whether the stat panels' multi-series-per-tile behavior looks right —
   needs the user in an actual Grafana UI.
+- Stage 1 confirmed working by the user.
+- **Stage 2:** the combined GPU price+availability table works exactly as designed
+  in §5 — three instant, table-format queries (each pre-reduced to one row per
+  `gpu_id` via `max by (gpu_id) (...)`) joined with Grafana's `joinByField`
+  transform (`mode: "outer"`, so a GPU missing from one query's result still shows
+  up with a blank cell rather than being dropped), then an `organize` transform
+  renames the resulting `Value #A`/`#B`/`#C` columns to their real meaning and drops
+  `Time` (meaningless for an instant snapshot). Same pattern for the CPU price
+  table. `Best Availability`'s 0–3 values get a field-override value mapping to
+  NONE/LOW/MEDIUM/HIGH text, via a `byName` matcher.
+  Caught and fixed before committing: the `$catalog_gpu_id` variable's own
+  `label_values(...)` query initially used `catalog_gpu_id` as the label name
+  (copied from the Grafana variable's name) instead of the real Prometheus label,
+  `gpu_id` — variable name and label name only coincide for `pod_id`/`endpoint_id`/
+  `cluster_id` because those weren't given a domain-prefixed name; `catalog_gpu_id`
+  was, specifically to avoid confusion with `pod_id`'s own `gpu_id`-shaped label on
+  `runpod_pod_info`, and that rename broke the generic panel-generation helper's
+  assumption that they're always the same string. Fixed by decoupling the
+  variable's display name from the label name it actually queries.
+  **Not verified in a browser** — same limitation as every prior stage. This is the
+  riskiest panel in the whole spec (§8 called it out specifically); the join/rename/
+  value-mapping chain is exactly the kind of thing that looks right in the JSON and
+  still renders wrong, so it genuinely needs to be looked at, not just trusted.
