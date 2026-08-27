@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: in-progress (Stage 3 done)
+Status: in-progress (Stage 4 done)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -94,7 +94,7 @@ just be waste.
 | account | fast | `GET /v2/account/ssh-keys` |
 | cluster | fast | `GET /v2/clusters` |
 | billing | slow | `GET /v2/billing?bucketSize=hour&lastN=1` (aggregate endpoint alone returns every resource category the metric needs — see decisions log) |
-| catalog | slow | `GET /v2/catalog/gpus`, `/cpus`, `/datacenters` |
+| catalog | slow | `GET /v2/catalog/gpus?include=AVAILABILITY&product=<POD\|SERVERLESS\|CLUSTER>` (once per product), `GET /v2/catalog/cpus` (no params — see decisions log) |
 | template | slow | `GET /v2/templates` |
 | registry | slow | `GET /v2/registries`, `/v2/registries/delegations` |
 | network-volume | slow | `GET /v2/network-volumes` |
@@ -141,9 +141,16 @@ just be waste.
 
 ### catalog (slow)
 
-- `runpod_catalog_gpu_price_dollars_per_hour{gpu_id,cloud}` — `GpuType.price`, `cloud ∈ secure|community`
-- `runpod_catalog_cpu_price_dollars_per_hour{cpu_id}` — `CpuType.price`
-- `runpod_catalog_gpu_availability{gpu_id,data_center_id}` — `AvailabilityLevel` enum, mapped to int
+- `runpod_catalog_gpu_price_dollars_per_hour{gpu_id,cloud}` — `GpuType.price`,
+  `cloud ∈ SECURE|COMMUNITY`
+- `runpod_catalog_cpu_price_dollars_per_vcpu_hour{cpu_id,cloud}` — `CpuType.price`,
+  `cloud ∈ SECURE|SERVERLESS`. Renamed from the original
+  `runpod_catalog_cpu_price_dollars_per_hour{cpu_id}` and given a `cloud`
+  label — see decisions log.
+- `runpod_catalog_gpu_availability{gpu_id,data_center_id,product}` —
+  `AvailabilityLevel` enum mapped to int (`NONE`=0, `LOW`=1, `MEDIUM`=2,
+  `HIGH`=3), `product ∈ POD|SERVERLESS|CLUSTER`. `product` label added
+  beyond the original spec — see decisions log.
 
 ### template (slow)
 
@@ -397,3 +404,32 @@ as something checkable.
   directly rather than re-deriving counts from the raw `workers` array —
   that array is only needed for the `isStale` count, which isn't
   summarized.
+- Stage 4 (`cluster`, `network-volume`, `template`, `registry`, `catalog`)
+  reused the all-or-nothing multi-call pattern from serverless for
+  `registry` (`/registries` + `/registries/delegations`) and `catalog`
+  (three product-scoped GPU calls + one CPU call) — same reasoning, not a
+  new decision.
+- `NetworkVolume`'s actual field is `dataCenter`, not `dataCenterId` like
+  every other domain's equivalent — the `runpod_network_volume_size_gb`
+  label is still named `data_center_id` for cross-domain label-name
+  consistency, sourced from that field.
+- `runpod_catalog_gpu_availability` gained a `product` label
+  (`POD|SERVERLESS|CLUSTER`) beyond the original spec's
+  `{gpu_id,data_center_id}`: the API requires an explicit product context
+  for availability data (`include=AVAILABILITY` requires `product`, no
+  default — "the same GPU can be scarce for pods and plentiful for
+  serverless"), and a single metric with no way to distinguish contexts
+  would silently conflate them. Confirmed with the user; three separate
+  per-product `GET /v2/catalog/gpus` calls are made each poll, all-or-nothing.
+- `runpod_catalog_cpu_price_dollars_per_hour{cpu_id}` was renamed to
+  `runpod_catalog_cpu_price_dollars_per_vcpu_hour{cpu_id,cloud}`:
+  `CpuType.price` is `{securePerVcpu, serverlessPerVcpu}` — per-vCPU, split
+  by context — not the single flat number the original name/labels
+  assumed. The old name would have both misstated the unit and silently
+  dropped the serverless rate. Confirmed with the user; label casing
+  (`SECURE`/`SERVERLESS`) matches the GPU price metric's `cloud` label even
+  though `CpuType.price` has no real enum to source from, just field names.
+- `GET /v2/catalog/datacenters` is never called — no catalog metric needs a
+  standalone datacenter listing; the per-GPU `dataCenters` array (present
+  with `include=AVAILABILITY`) already supplies everything
+  `runpod_catalog_gpu_availability` needs.

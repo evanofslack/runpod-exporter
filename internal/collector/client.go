@@ -38,6 +38,16 @@ func Build(domainNames []string, client *openapi.ClientWithResponses) []Domain {
 			out = append(out, NewBillingDomain(client))
 		case "serverless":
 			out = append(out, NewServerlessDomain(client))
+		case "cluster":
+			out = append(out, NewClusterDomain(client))
+		case "network-volume":
+			out = append(out, NewNetworkVolumeDomain(client))
+		case "template":
+			out = append(out, NewTemplateDomain(client))
+		case "registry":
+			out = append(out, NewRegistryDomain(client))
+		case "catalog":
+			out = append(out, NewCatalogDomain(client))
 		default:
 			slog.Warn("domain not yet implemented, skipping", "domain", name)
 		}
