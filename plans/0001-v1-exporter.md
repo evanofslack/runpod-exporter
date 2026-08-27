@@ -295,11 +295,23 @@ via the justfile's `set dotenv-load := true`, and `just dev-up` via
 build context (`.dockerignore`) so a real key never ends up baked into an
 image layer via the builder stage's `COPY . .`.
 
-## 12. CI (placeholder)
+## 12. CI
 
-GitHub Actions is the final stage of v1, not built until an example workflow is
-provided to mirror. Requirements to fold in when that happens: run `test` + `build`
-on every PR; on a release, additionally build and push a container image.
+`.github/workflows/ci.yaml`, modeled on the user's own
+[bambulab-exporter](https://github.com/evanofslack/bambulab-exporter) — see
+the decisions log for what was adopted from it and what deliberately wasn't.
+Two jobs:
+
+- `test` (every push and PR): `go build`, `go vet`, a `gofmt -l` check, and
+  `go test ./... -race`.
+- `publish` (`needs: test`; push to `main`, a `v*` tag, or manual dispatch
+  only — never a PR): builds and pushes a Docker image to Docker Hub
+  (`evanofslack/runpod-exporter`) via `docker/metadata-action` for tagging
+  (`latest` on default branch, semver, branch ref, sha).
+
+Requires `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets on the GitHub repo —
+not yet set up as of writing (this repo has no GitHub remote configured
+yet), so `publish` will fail until both exist.
 
 ## 13. Stages
 
@@ -500,3 +512,25 @@ as something checkable.
   Runpod's side, not an exporter bug. Noted here per "observed live
   behavior > the spec > these tables" so it isn't mistaken for a defect
   later.
+- CI and README were assessed against the user's own
+  [bambulab-exporter](https://github.com/evanofslack/bambulab-exporter)
+  (another Go Prometheus exporter of theirs) at their request. Adopted:
+  the README's "paste a real sample of `/metrics` output" pattern (kept
+  short here — pointed at the spec for the full catalog rather than
+  reproducing it, since this project has far more metrics than a
+  single-device exporter), and `docker/metadata-action`'s tagging scheme
+  for the publish workflow. Deliberately not adopted, because
+  bambulab-exporter is doing worse on these, not different-but-equal: no
+  test/lint CI gate at all (this project's `test` job runs first and
+  `publish` needs it — bambulab-exporter's publish workflow has nothing
+  gating it), no `internal/` package layout, third-party
+  `cleanenv`/`godotenv` for config instead of stdlib `flag`+env (conflicts
+  with §9's "prefer stdlib" and this project's flag+env precedence design),
+  a custom non-default Prometheus registry that drops Go runtime/process
+  metrics from `/metrics`, and some real gofmt violations / commented-out
+  dead code left in the source.
+- Registry choice for `publish`: Docker Hub (`evanofslack/runpod-exporter`),
+  matching bambulab-exporter, over GHCR — confirmed with the user even
+  though GHCR would need no extra secrets. Requires
+  `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` added to the GitHub repo once it
+  exists there.

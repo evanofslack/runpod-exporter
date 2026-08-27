@@ -34,6 +34,29 @@ Flags and env vars — flag wins if both are set:
 Run with `--help` for details. See [plans/0001-v1-exporter.md](plans/0001-v1-exporter.md)
 for the full metric catalog and design.
 
+## Metrics
+
+A sample — `--domains=all` exposes many more (serverless, cluster, catalog,
+registry, template, network-volume); see the spec above for the full list.
+
+```
+# HELP runpod_pod_up 1 if the pod exists, 0 otherwise. Labeled with its current status.
+# TYPE runpod_pod_up gauge
+runpod_pod_up{pod_id="pod_abc123",pod_name="my-training-pod",status="RUNNING"} 1
+# HELP runpod_pod_cpu_util_percent CPU utilization percent. Absent while the pod's runtime is null.
+# TYPE runpod_pod_cpu_util_percent gauge
+runpod_pod_cpu_util_percent{pod_id="pod_abc123"} 45
+# HELP runpod_pod_gpu_util_percent Per-GPU utilization percent. Absent while the pod's runtime is null.
+# TYPE runpod_pod_gpu_util_percent gauge
+runpod_pod_gpu_util_percent{gpu_index="0",pod_id="pod_abc123"} 94
+# HELP runpod_account_ssh_keys Number of SSH keys registered on the account.
+# TYPE runpod_account_ssh_keys gauge
+runpod_account_ssh_keys 1
+# HELP runpod_billing_cost_dollars Latest hourly billing bucket's cost in USD, by resource.
+# TYPE runpod_billing_cost_dollars gauge
+runpod_billing_cost_dollars{resource="pod_gpu"} 0.44
+```
+
 ## Development
 
 ```
