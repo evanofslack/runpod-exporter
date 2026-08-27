@@ -79,6 +79,44 @@ func TestBillingDomain_Poll_Success(t *testing.T) {
 	}
 }
 
+// emptyBillingFixture mirrors a real response observed against the live API:
+// zero records for the current hour, but metadata.totals is still present
+// (all zero). Regression test for a bug where the collector read
+// records[-1] and silently skipped setting any series when records was
+// empty, even though totals had legitimate all-zero data to report.
+const emptyBillingFixture = `{
+  "records": [],
+  "metadata": {
+    "query": {"startTime": "2026-08-27T12:00:00Z", "endTime": "2026-08-27T13:00:00Z", "bucketSize": "hour"},
+    "recordCount": 0,
+    "totals": {
+      "totalAmount": 0, "podGpuAmount": 0, "podCpuAmount": 0, "podDiskAmount": 0,
+      "serverlessGpuAmount": 0, "serverlessCpuAmount": 0, "serverlessDiskAmount": 0,
+      "serverlessFeeAmount": 0, "storageStandardAmount": 0, "storageHighPerformanceAmount": 0,
+      "endpointAmount": 0, "clusterGpuAmount": 0, "clusterDiskAmount": 0, "clusterNetworkingAmount": 0
+    }
+  }
+}`
+
+func TestBillingDomain_Poll_EmptyRecordsStillReportsTotals(t *testing.T) {
+	metrics.BillingCostDollars.Reset()
+	fs, srv := newFixtureServer()
+	defer srv.Close()
+	fs.set(http.StatusOK, emptyBillingFixture)
+
+	d := NewBillingDomain(testClient(t, srv.URL))
+	if err := d.Poll(context.Background()); err != nil {
+		t.Fatalf("Poll: %v", err)
+	}
+
+	if got := testutil.ToFloat64(metrics.BillingCostDollars.WithLabelValues("pod_gpu")); got != 0 {
+		t.Errorf("pod_gpu = %v, want 0", got)
+	}
+	if n := testutil.CollectAndCount(metrics.BillingCostDollars); n != 13 {
+		t.Errorf("BillingCostDollars series count = %d, want 13 (all resources, even at zero)", n)
+	}
+}
+
 func TestBillingDomain_Poll_HTTPErrorStaleServes(t *testing.T) {
 	metrics.BillingCostDollars.Reset()
 	fs, srv := newFixtureServer()

@@ -478,3 +478,25 @@ as something checkable.
   double) and asserts the exact resolved request URL via a captured-request
   transport, so a reintroduced `/v2` fails immediately without needing a
   real key or network access.
+- **Bug, caught by the user's first `--domains=all` live run:**
+  `runpod_billing_cost_dollars` was completely absent even though the
+  billing domain polled successfully. Root cause: the collector read
+  `records[len(records)-1]` and skipped setting any series when `records`
+  was empty — but `GET /v2/billing?bucketSize=hour&lastN=1` legitimately
+  returns zero records for an hour with no billing activity (confirmed
+  against the live API: `{"recordCount":0,"records":[],"metadata":{"totals":
+  {...all zero...}}}`), which isn't an error case, just "nothing happened
+  this hour." Fixed by reading `metadata.totals` instead of `records[-1]`:
+  `totals` is the same `BillingAmounts` shape and is unconditionally
+  present, so it correctly reports all-zero spend instead of reporting
+  nothing, and is equivalent to `records[0]`'s amounts in the normal case
+  where exactly one record exists (sum of one item). Regression test:
+  `TestBillingDomain_Poll_EmptyRecordsStillReportsTotals`.
+- Also observed live and worth flagging even though it's not something the
+  exporter can fix: `Pod.cost` showed a non-zero value (`0.99`) for an
+  `EXITED` pod, though the schema's own description says cost is `0.0` when
+  `EXITED`/`TERMINATED`. `runpod_pod_cost_per_hour_dollars` passes
+  `Pod.cost` through unchanged — this looks like a live-API/doc mismatch on
+  Runpod's side, not an exporter bug. Noted here per "observed live
+  behavior > the spec > these tables" so it isn't mistaken for a defect
+  later.
