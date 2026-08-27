@@ -1,6 +1,6 @@
 # 0002 — monitoring stack: Grafana dashboard + docker-compose example
 
-Status: in-progress (Stage 0 done — docker CLI unverified, see decisions log)
+Status: in-progress (Stage 1 done — needs browser verification, see decisions log)
 Scope: a docker-compose stack (prometheus + grafana + runpod-exporter) that anyone
 cloning this repo can bring up and immediately see real dashboards, plus the Grafana
 dashboard itself, committed as JSON and auto-provisioned — no manual import. Builds on
@@ -319,3 +319,24 @@ unaffected and untouched by this spec. What can be verified without a browser:
   Grafana's and Prometheus's standard, long-stable documented formats, but actually
   bringing the stack up and confirming Prometheus scrapes the exporter and Grafana's
   datasource test succeeds is unverified — needs the user to run it.
+- Stage 0 confirmed working by the user — all three services came up, Prometheus
+  scraped the exporter, Grafana's datasource test passed, Explore returned real data.
+- **Stage 1:** `deploy/grafana/dashboards/runpod-exporter.json` generated via a
+  throwaway Python script (dict construction, `json.dump`) rather than hand-typed —
+  17 panels of mostly-repeated boilerplate is much less error-prone built
+  programmatically than typed by hand. The script itself isn't committed, only its
+  output; regenerating it isn't a normal workflow (further dashboard changes are
+  direct edits to the committed JSON, same as any other source file).
+  `fillOpacity: 0` (lines only, no fill) on every panel keyed by a multi-select
+  per-entity variable (Pod row's utilization/cost panels, Serverless's stale/min-max
+  panels) — per §4, avoids a messy shaded look when several pods/endpoints are
+  selected and their lines overlap. `fillOpacity: 10` stays on the small
+  fixed-cardinality "by status" panel. "Workers by State" uses `stacking.mode:
+  "normal"` with `fillOpacity: 20` (a stacked area, not overlaid lines) since spec
+  §5 called it out as stacked specifically.
+  **Not verified in a browser** — same limitation as Stage 0 and 0001's live checks.
+  Validated: JSON parses, panel `id`s are unique, no two panels' `gridPos` rectangles
+  overlap (checked programmatically). Not validated: whether it actually renders
+  sensibly, whether `$pod_id`/`$endpoint_id` actually populate from real label
+  values, whether the stat panels' multi-series-per-tile behavior looks right —
+  needs the user in an actual Grafana UI.
