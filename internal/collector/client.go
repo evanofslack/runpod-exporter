@@ -36,6 +36,8 @@ func Build(domainNames []string, client *openapi.ClientWithResponses) []Domain {
 			out = append(out, NewAccountDomain(client))
 		case "billing":
 			out = append(out, NewBillingDomain(client))
+		case "serverless":
+			out = append(out, NewServerlessDomain(client))
 		default:
 			slog.Warn("domain not yet implemented, skipping", "domain", name)
 		}

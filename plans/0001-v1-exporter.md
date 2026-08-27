@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: in-progress (Stage 2 done)
+Status: in-progress (Stage 3 done)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -382,3 +382,18 @@ as something checkable.
   against the vendored `openapi.json`'s schema, not just the spec's prose.
 - Billing/account values are exposed as-is (float64 USD, integer count) —
   no unit conversion or invented precision, confirmed with the user.
+- Serverless's N+1 fan-out (`GET /v2/serverless` then per-endpoint
+  `GET /v2/serverless/{id}/workers`) is all-or-nothing per poll: every
+  endpoint's workers are fetched into local variables first, and the metric
+  vecs are only touched once every fetch has succeeded. One endpoint's
+  transient failure fails the whole poll and stale-serves the prior
+  snapshot for every endpoint, rather than mixing fresh and stale data
+  within one metric family. Confirmed with the user — this is the pattern
+  any future N+1 domain should follow. Sequential, not concurrent,
+  per-endpoint fetching, matching v1's existing "no client-side rate
+  limiting" stance on this domain's burst potential.
+- `WorkerSummary` (from `GET /v2/serverless/{id}/workers`) already carries
+  pre-aggregated per-state counts, so `runpod_serverless_workers` reads it
+  directly rather than re-deriving counts from the raw `workers` array —
+  that array is only needed for the `isStale` count, which isn't
+  summarized.
