@@ -40,7 +40,10 @@ func Parse(args []string, getenv func(string) string) (*Config, error) {
 	fs := flag.NewFlagSet("runpod-exporter", flag.ContinueOnError)
 
 	apiKey := fs.String("api-key", "", "Runpod API key (required; env RUNPOD_API_KEY)")
-	apiURL := fs.String("api-url", envOrDefault(getenv, "RUNPOD_API_URL", "https://api.runpod.io/v2"), "Runpod API base URL")
+	// No /v2 suffix: the generated client's operation paths already include
+	// it (e.g. /v2/pods), matching the openapi spec's own `servers[0].url`.
+	// Adding /v2 here doubles it into /v2/v2/... on every request.
+	apiURL := fs.String("api-url", envOrDefault(getenv, "RUNPOD_API_URL", "https://api.runpod.io"), "Runpod API base URL")
 	domains := fs.String("domains", envOrDefault(getenv, "RUNPOD_DOMAINS", "pod,account,billing"), `comma-separated domains to poll, or "all"`)
 	listenAddr := fs.String("listen-addr", envOrDefault(getenv, "RUNPOD_LISTEN_ADDR", ":9836"), "address to serve /metrics and /healthz on")
 	scrapeInterval := fs.String("scrape-interval", envOrDefault(getenv, "RUNPOD_SCRAPE_INTERVAL", "30s"), "poll interval for fast-tier domains")

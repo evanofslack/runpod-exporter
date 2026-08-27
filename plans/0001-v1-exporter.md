@@ -213,7 +213,7 @@ resolved from env before flag registration so `--help` shows the effective value
 | Flag | Env | Default | Notes |
 |---|---|---|---|
 | `--api-key` | `RUNPOD_API_KEY` | — | required |
-| `--api-url` | `RUNPOD_API_URL` | `https://api.runpod.io/v2` | |
+| `--api-url` | `RUNPOD_API_URL` | `https://api.runpod.io` | no `/v2` — see decisions log |
 | `--domains` | `RUNPOD_DOMAINS` | `pod,account,billing` | comma list or `all` |
 | `--listen-addr` | `RUNPOD_LISTEN_ADDR` | `:9836` | |
 | `--scrape-interval` | `RUNPOD_SCRAPE_INTERVAL` | `30s` | fast-tier domains |
@@ -456,3 +456,25 @@ as something checkable.
   `docker-compose.dev.yml`, since the eventual prometheus+grafana+exporter
   stack (§3 non-goals, a later spec) will need its own distinct name/location
   when it exists, not this file.
+- **Bug, caught by the user's first live run with a real key:** the default
+  `--api-url` was `https://api.runpod.io/v2`, but the openapi spec's own
+  `servers[0].url` is the bare host (`https://api.runpod.io`) — every
+  operation path already includes `/v2` (e.g. `/v2/pods`). With the wrong
+  default, the generated client's `NewClient` forces a trailing slash onto
+  the server URL, and `url.Parse`'s relative-resolution merge algorithm
+  then resolves `./v2/pods` against `https://api.runpod.io/v2/` as
+  `https://api.runpod.io/v2/v2/pods` — every domain 404'd. Fixed in
+  `internal/config/config.go`, `.env.example`, and README.
+  **Why every prior "live" check in this session missed it:** those all
+  used a deliberately invalid key to avoid touching a real account.
+  Runpod's API gateway authenticates before path-routing, so an invalid key
+  produces `401` regardless of whether the (doubled, wrong) path exists —
+  masking the bug completely. A `404` only ever surfaces with a *valid* key
+  reaching real path-routing, which no test in this session exercised
+  before the user's first live run. Added
+  `TestDefaultAPIURL_DoesNotDoubleVersionPath` in
+  `internal/collector/client_test.go` as a regression test: it builds the
+  client from `config.Parse`'s actual default (not a hardcoded test
+  double) and asserts the exact resolved request URL via a captured-request
+  transport, so a reintroduced `/v2` fails immediately without needing a
+  real key or network access.

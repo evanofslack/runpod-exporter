@@ -18,7 +18,7 @@ func TestParse_EnvDefaults(t *testing.T) {
 	if cfg.APIKey != "secret" {
 		t.Errorf("APIKey = %q, want %q", cfg.APIKey, "secret")
 	}
-	if cfg.APIURL.String() != "https://api.runpod.io/v2" {
+	if cfg.APIURL.String() != "https://api.runpod.io" {
 		t.Errorf("APIURL = %q", cfg.APIURL.String())
 	}
 	if got, want := cfg.Domains, []string{"pod", "account", "billing"}; !equal(got, want) {

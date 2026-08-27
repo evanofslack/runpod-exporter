@@ -20,7 +20,7 @@ Flags and env vars — flag wins if both are set:
 | Flag | Env | Default |
 |---|---|---|
 | `--api-key` | `RUNPOD_API_KEY` | required |
-| `--api-url` | `RUNPOD_API_URL` | `https://api.runpod.io/v2` |
+| `--api-url` | `RUNPOD_API_URL` | `https://api.runpod.io` |
 | `--domains` | `RUNPOD_DOMAINS` | `pod,account,billing` (or `all`) |
 | `--listen-addr` | `RUNPOD_LISTEN_ADDR` | `:9836` |
 | `--scrape-interval` | `RUNPOD_SCRAPE_INTERVAL` | `30s` |
