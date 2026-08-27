@@ -6,14 +6,9 @@ utilization, serverless workers, billing, and catalog pricing.
 ## Run
 
 ```
-docker build -t runpod-exporter .
-docker run -p 9836:9836 -e RUNPOD_API_KEY=<your key> runpod-exporter
-```
-
-or from source:
-
-```
-just run
+cp .env.example .env   # fill in RUNPOD_API_KEY
+just dev-up            # docker compose, or:
+just run               # go run, from source
 ```
 
 Metrics are served at `http://localhost:9836/metrics`, health at `/healthz`.
@@ -38,8 +33,11 @@ for the full metric catalog and design.
 ## Development
 
 ```
-just build   # build the binary
-just test    # run tests
-just vet     # go vet
-just fmt     # gofmt
+just build     # build the binary
+just run       # go run, reads .env
+just dev-up    # docker compose up --build
+just dev-down  # docker compose down
+just test      # run tests
+just vet       # go vet
+just fmt       # gofmt
 ```

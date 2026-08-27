@@ -1,0 +1,9 @@
+# Local dev only: builds and runs the exporter itself against your API key.
+# The separate prometheus+grafana+exporter stack is a later spec.
+services:
+  runpod-exporter:
+    build: .
+    ports:
+      - "9836:9836"
+    env_file:
+      - .env

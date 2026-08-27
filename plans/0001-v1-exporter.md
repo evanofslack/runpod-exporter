@@ -279,13 +279,21 @@ fixture servers. Test what has logic, skip what's wiring:
 
 ```
 just build      # go build ./cmd/runpod-exporter
-just run        # go run ./cmd/runpod-exporter (reads .env if present)
+just run        # go run ./cmd/runpod-exporter (reads .env via dotenv-load)
+just dev-up     # docker compose up --build (dev-only compose, exporter alone)
+just dev-down   # docker compose down
 just test       # go test ./...
 just vet        # go vet ./...
 just fmt        # gofmt -l -w .
 just generate   # go generate ./openapi
 just tidy       # go mod tidy
 ```
+
+`.env` (gitignored, copy from `.env.example`) is picked up two ways: `just run`
+via the justfile's `set dotenv-load := true`, and `just dev-up` via
+`docker-compose.yml`'s `env_file`. `.env` is also excluded from the Docker
+build context (`.dockerignore`) so a real key never ends up baked into an
+image layer via the builder stage's `COPY . .`.
 
 ## 12. CI (placeholder)
 
@@ -439,3 +447,12 @@ as something checkable.
   standalone datacenter listing; the per-GPU `dataCenters` array (present
   with `include=AVAILABILITY`) already supplies everything
   `runpod_catalog_gpu_availability` needs.
+- Stage 0's justfile table always said `just run` "reads .env if present",
+  but that was never actually wired up — plain `go run` doesn't read `.env`.
+  Caught and fixed while adding dev tooling: `set dotenv-load := true` in
+  the justfile now makes it true.
+- `docker-compose.yml` is dev-only (the exporter alone, built from the local
+  Dockerfile, `.env` via `env_file`) — deliberately plain-named rather than
+  `docker-compose.dev.yml`, since the eventual prometheus+grafana+exporter
+  stack (§3 non-goals, a later spec) will need its own distinct name/location
+  when it exists, not this file.
