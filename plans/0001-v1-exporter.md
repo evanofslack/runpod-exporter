@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: in-progress (Stage 0 done)
+Status: in-progress (Stage 1 done)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -334,3 +334,20 @@ as something checkable.
   several of this API's own schema names (e.g. `ListBillingResponse` is both
   a response-envelope struct and a real schema). Fixed via
   `output-options.response-type-suffix: HTTPResponse` in `oapi-codegen.yaml`.
+- Per-call poll timeout is a flat 15s constant (`pollTimeout` in
+  `internal/collector/domain.go`) — the spec left the exact value open.
+- A configured domain with no registered collector (e.g. `account`/`billing`
+  before their stages land) logs a warning and is skipped rather than
+  failing startup, so the default `--domains` flags stay usable stage by
+  stage. Decided with the user ahead of Stage 1.
+- The self-observability metrics (`scrape_errors_total`,
+  `last_success_timestamp_seconds`, `scrape_duration_seconds`) and the
+  poll-error/stale-serve mechanics live in the shared runner
+  (`internal/collector/domain.go`), not in each domain's own `Poll` — every
+  domain gets this for free, so it's tested once (`domain_test.go` with a
+  fake `Domain`) rather than re-verified per domain.
+- A domain's per-call context is derived from `context.Background()` with
+  just `pollTimeout` applied, not from the runner's cancellable `ctx` —
+  otherwise a shutdown signal would abort an in-flight poll mid-request,
+  contradicting §8's "an in-flight poll finishes... not mid-request."
+  Shutdown only takes effect between ticks.

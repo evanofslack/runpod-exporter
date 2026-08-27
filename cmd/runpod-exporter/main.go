@@ -13,6 +13,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/evanofslack/runpod-exporter/internal/collector"
 	"github.com/evanofslack/runpod-exporter/internal/config"
 )
 
@@ -32,6 +33,12 @@ func run() error {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: cfg.LogLevel}))
 	slog.SetDefault(logger)
 
+	client, err := collector.NewClient(cfg.APIURL, cfg.APIKey)
+	if err != nil {
+		return fmt.Errorf("build runpod client: %w", err)
+	}
+	domains := collector.Build(cfg.Domains, client)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -43,6 +50,8 @@ func run() error {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	go collector.Run(ctx, domains, cfg.ScrapeInterval, cfg.ScrapeIntervalSlow)
 
 	serveErr := make(chan error, 1)
 	go func() {
