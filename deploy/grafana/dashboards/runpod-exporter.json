@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Metrics for the Runpod v2 REST API exporter",
+  "description": "Pod, serverless, billing, cluster, and catalog metrics for the Runpod v2 REST API exporter \u2014 one row per domain.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -2205,7 +2205,8 @@
   "schemaVersion": 39,
   "tags": [
     "runpod",
-    "prometheus-exporter"
+    "prometheus-exporter",
+    "grafana-dashboard"
   ],
   "templating": {
     "list": [

@@ -56,6 +56,18 @@ runpod_account_ssh_keys 1
 runpod_billing_cost_dollars{resource="pod_gpu"} 0.44
 ```
 
+## Dashboard
+
+A full stack — exporter + Prometheus + Grafana, with a dashboard already loaded:
+
+```
+docker compose -f deploy/docker-compose.yml up
+```
+
+Open Grafana at `http://localhost:3000` (default login `admin`/`admin`) — the
+"Runpod Exporter" dashboard is there on first boot, no import needed. See
+[plans/0002-monitoring-stack.md](plans/0002-monitoring-stack.md) for its design.
+
 ## Development
 
 ```

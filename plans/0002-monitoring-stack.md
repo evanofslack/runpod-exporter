@@ -1,6 +1,6 @@
 # 0002 — monitoring stack: Grafana dashboard + docker-compose example
 
-Status: in-progress (Stage 3 done — needs browser verification, see decisions log)
+Status: in-progress (Stage 4 done — needs browser verification, see decisions log)
 Scope: a docker-compose stack (prometheus + grafana + runpod-exporter) that anyone
 cloning this repo can bring up and immediately see real dashboards, plus the Grafana
 dashboard itself, committed as JSON and auto-provisioned — no manual import. Builds on
@@ -388,3 +388,14 @@ unaffected and untouched by this spec. What can be verified without a browser:
   without needing a filter, same reasoning as the original per-row-variable scope
   decision. Dashboard now complete: all 10 rows, 37 panels.
   **Not verified in a browser** — same limitation as every prior stage.
+- Stage 3 confirmed working by the user.
+- **Stage 4:** README "Dashboard" section added (`docker compose -f
+  deploy/docker-compose.yml up`, Grafana URL, default `admin`/`admin` login).
+  Description and tags finalized on the dashboard now that its scope is settled.
+  **Workflow change going forward, per the user:** they're taking over manual
+  editing of `runpod-exporter.json` from here — tweaking it directly in the Grafana
+  UI and exporting/committing it themselves, rather than this agent continuing to
+  hand-generate it via the throwaway Python scripts used for Stages 1–3. Future
+  agent work on this dashboard should treat the committed JSON as the user's own
+  edits, not something to regenerate from scratch, and diff/preserve what's there
+  rather than overwriting it.
