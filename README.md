@@ -11,6 +11,10 @@ just dev-up            # docker compose, or:
 just run               # go run, from source
 ```
 
+Use a **read-only** Runpod API key — the exporter only ever makes `GET`
+requests, so a read-only key means a bug here can't take a mutating action
+on your account.
+
 Metrics are served at `http://localhost:9836/metrics`, health at `/healthz`.
 
 ## Configuration
