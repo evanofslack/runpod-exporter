@@ -179,8 +179,11 @@ A single runner in `internal/collector/domain.go` takes the enabled `[]Domain`,
 starts one goroutine per domain on its own `time.Ticker` (interval from its
 `Tier()`), and on each tick:
 
-1. Call `Poll(ctx)` with a per-call timeout derived from `ctx` (bounded, so one
-   hung request can't wedge that domain's loop forever).
+1. Call `Poll(ctx)` with a per-call timeout of its own (`pollTimeout`, 15s),
+   independent of the runner's shutdown context — bounded, so one hung
+   request can't wedge that domain's loop forever, and not tied to shutdown
+   so a poll in flight when shutdown begins isn't aborted mid-request (see
+   §8's shutdown sequencing for what does eventually stop it).
 2. On success: reset the domain's vecs, populate from the response, set
    `last_success_timestamp` and `scrape_duration`.
 3. On error: log it (structured, see §9), increment `scrape_errors_total`, leave
@@ -222,9 +225,19 @@ floor (5s), unparseable `--api-url`.
   os.Interrupt, syscall.SIGTERM)`. That context is threaded into every domain's
   poll loop and into the `http.Server`.
 - On cancellation: stop accepting new ticks (domain loops select on `ctx.Done()`
-  between ticks, not mid-request — an in-flight poll finishes or hits its own
-  per-call timeout), then `http.Server.Shutdown(shutdownCtx)` with a bounded
-  timeout (5s) so an in-flight scrape from Prometheus is allowed to finish.
+  between ticks, not mid-request), then `http.Server.Shutdown(shutdownCtx)` with
+  a bounded timeout (5s) so an in-flight scrape from Prometheus is allowed to
+  finish.
+- An in-flight poll gets a grace period, not an unbounded pass: when `ctx` is
+  canceled, the poll already running is left to finish on its own for up to
+  `shutdownGrace` (5s, matching the HTTP server's own shutdown budget) before
+  it is force-canceled. A poll that was going to finish within that window
+  (the common case) completes normally either way; one that's actually stuck
+  gets cut off instead of blocking shutdown for the full 15s `pollTimeout`.
+  Implemented in `internal/collector/domain.go`'s `poll()` via a monitor
+  goroutine that races the poll's own completion against the grace timer —
+  `poll()` joins that goroutine before returning, so it can never outlive the
+  call it belongs to.
 
 ## 9. Error handling & logging conventions
 
