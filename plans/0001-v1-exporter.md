@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: in-progress (Stage 4 done)
+Status: in-progress (Stage 5 done — Dockerfile/README only, CI deferred, docker build unverified — see stage notes)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -326,9 +326,15 @@ as something checkable.
   *Done when:* `--domains=all` runs clean against a live account with every
   domain's metrics present.
 
-- **Stage 5 — packaging.** Dockerfile, README, GitHub Actions CI per §12.
+- **Stage 5 — packaging.** Dockerfile, README, GitHub Actions CI per §12. CI
+  deferred per the user (§12 already says it waits for an example workflow
+  to mirror) — this stage is Dockerfile + README only.
   *Done when:* `docker build` succeeds and the resulting image serves `/metrics`
-  identically to `go run`.
+  identically to `go run`. **Not verified** — no `docker` CLI/daemon in the
+  environment this was built in. The build-command half is verified
+  (`CGO_ENABLED=0 go build ./cmd/runpod-exporter` succeeds, matching the
+  Dockerfile's `RUN` line exactly); the actual image build and container run
+  need to be checked by the user.
 
 ## 14. Decisions log
 
