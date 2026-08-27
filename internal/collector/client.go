@@ -32,6 +32,10 @@ func Build(domainNames []string, client *openapi.ClientWithResponses) []Domain {
 		switch name {
 		case "pod":
 			out = append(out, NewPodDomain(client))
+		case "account":
+			out = append(out, NewAccountDomain(client))
+		case "billing":
+			out = append(out, NewBillingDomain(client))
 		default:
 			slog.Warn("domain not yet implemented, skipping", "domain", name)
 		}

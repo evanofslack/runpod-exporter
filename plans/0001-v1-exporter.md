@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: in-progress (Stage 1 done)
+Status: in-progress (Stage 2 done)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -93,7 +93,7 @@ just be waste.
 | serverless | fast | `GET /v2/serverless`, then `GET /v2/serverless/{id}/workers` per endpoint |
 | account | fast | `GET /v2/account/ssh-keys` |
 | cluster | fast | `GET /v2/clusters` |
-| billing | slow | `GET /v2/billing`, `/v2/billing/pods`, `/v2/billing/serverless` (`bucketSize=hour&lastN=1`) |
+| billing | slow | `GET /v2/billing?bucketSize=hour&lastN=1` (aggregate endpoint alone returns every resource category the metric needs — see decisions log) |
 | catalog | slow | `GET /v2/catalog/gpus`, `/cpus`, `/datacenters` |
 | template | slow | `GET /v2/templates` |
 | registry | slow | `GET /v2/registries`, `/v2/registries/delegations` |
@@ -373,3 +373,12 @@ as something checkable.
   `TestPoll_ForceCancelsAfterShutdownGrace` and
   `TestPoll_FinishesWithinGraceWithoutForceCancel`, both passing under
   `-race`.
+- Billing is polled via a single `GET /v2/billing` call, not the three the
+  §5 table originally listed. `ListBillingResponse`'s `BillingAmounts`
+  already carries all 13 resource fields the metric needs in one response —
+  the per-resource sub-endpoints (`/v2/billing/pods`, `/v2/billing/serverless`,
+  and the unlisted `/network-volumes`, `/endpoints`, `/clusters`) are
+  filtered views of the same data, redundant for this metric. Confirmed
+  against the vendored `openapi.json`'s schema, not just the spec's prose.
+- Billing/account values are exposed as-is (float64 USD, integer count) —
+  no unit conversion or invented precision, confirmed with the user.
