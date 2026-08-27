@@ -1,6 +1,6 @@
 # 0002 — monitoring stack: Grafana dashboard + docker-compose example
 
-Status: in-progress (Stage 2 done — needs browser verification, see decisions log)
+Status: in-progress (Stage 3 done — needs browser verification, see decisions log)
 Scope: a docker-compose stack (prometheus + grafana + runpod-exporter) that anyone
 cloning this repo can bring up and immediately see real dashboards, plus the Grafana
 dashboard itself, committed as JSON and auto-provisioned — no manual import. Builds on
@@ -379,3 +379,12 @@ unaffected and untouched by this spec. What can be verified without a browser:
   `includeAll` pattern as the reference dashboard's own `$pod`/`$service`), the two
   trend panels show ~40 GPU types at once and read as visually dense — working as
   designed, not a bug; narrowing the variable to specific GPUs is what it's for.
+- **Stage 3:** the four thin domains — mechanical, no new patterns. Account/Registry
+  use the same stat-panel shape as Overview; Template/Registry-info's dropped
+  `Value`/`Time` columns follow the same "info metric, value is always 1" pattern
+  established for Cluster Info in Stage 2; Volume Sizes keeps `Value` (renamed to
+  "Size (GB)") since unlike the info metrics, that number is the actual data being
+  shown, not a constant 1. No new template variables — table panels show every row
+  without needing a filter, same reasoning as the original per-row-variable scope
+  decision. Dashboard now complete: all 10 rows, 37 panels.
+  **Not verified in a browser** — same limitation as every prior stage.
