@@ -363,3 +363,19 @@ unaffected and untouched by this spec. What can be verified without a browser:
   riskiest panel in the whole spec (§8 called it out specifically); the join/rename/
   value-mapping chain is exactly the kind of thing that looks right in the JSON and
   still renders wrong, so it genuinely needs to be looked at, not just trusted.
+- Confirmed working by the user, with one real gap spotted from their screenshot:
+  "Best Availability" was blank for most GPUs — not a broken join (Secure/Community
+  price populated correctly for every row, proving the join itself works), but
+  `runpod_catalog_gpu_availability` simply has no series at all for a GPU that's
+  unavailable everywhere (the API omits `dataCenters` entirely in that case, so the
+  exporter never sets a series for it — correct exporter behavior, per 0001). A
+  blank cell reads as "no data" rather than "confirmed unavailable." Fixed with a
+  PromQL fallback: `max by (gpu_id) (runpod_catalog_gpu_availability) or (max by
+  (gpu_id) (runpod_catalog_gpu_price_dollars_per_hour) * 0)` — real availability
+  data where it exists, `0` (NONE, via the existing value mapping) for every priced
+  GPU that has none. `or` in PromQL keeps the left side's series and only adds the
+  right side's for label sets absent on the left, so this can't clobber real data.
+  Also observed but not changed: with `$catalog_gpu_id` defaulted to "All" (same
+  `includeAll` pattern as the reference dashboard's own `$pod`/`$service`), the two
+  trend panels show ~40 GPU types at once and read as visually dense — working as
+  designed, not a bug; narrowing the variable to specific GPUs is what it's for.

@@ -1708,7 +1708,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "max by (gpu_id) (runpod_catalog_gpu_availability)",
+          "expr": "max by (gpu_id) (runpod_catalog_gpu_availability) or (max by (gpu_id) (runpod_catalog_gpu_price_dollars_per_hour) * 0)",
           "legendFormat": "",
           "range": false,
           "refId": "C",
