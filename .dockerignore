@@ -1,5 +1,6 @@
 .git
 bin/
 plans/
+deploy/
 *.md
 .env

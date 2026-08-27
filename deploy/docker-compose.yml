@@ -1,0 +1,33 @@
+# Full example stack: exporter + prometheus + grafana. Distinct from the
+# root docker-compose.yml, which is dev-only (the exporter alone).
+services:
+  runpod-exporter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    env_file:
+      - ../.env
+    expose:
+      - "9836"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.14.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      - runpod-exporter
+
+  grafana:
+    image: grafana/grafana:13.2.0
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - prometheus

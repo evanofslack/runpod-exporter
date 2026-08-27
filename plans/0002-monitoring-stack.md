@@ -1,6 +1,6 @@
 # 0002 — monitoring stack: Grafana dashboard + docker-compose example
 
-Status: draft
+Status: in-progress (Stage 0 done — docker CLI unverified, see decisions log)
 Scope: a docker-compose stack (prometheus + grafana + runpod-exporter) that anyone
 cloning this repo can bring up and immediately see real dashboards, plus the Grafana
 dashboard itself, committed as JSON and auto-provisioned — no manual import. Builds on
@@ -304,3 +304,18 @@ unaffected and untouched by this spec. What can be verified without a browser:
   environment. Every stage's done-when criteria that involves "renders correctly"
   requires the user's own visual confirmation, same limitation already established
   for 0001's live API checks.
+- **Stage 0:** pinned to the actual latest stable releases at implementation time —
+  Prometheus `v3.14.0`, Grafana `13.2.0` (checked via `gh api
+  repos/{prometheus,grafana}/{prometheus,grafana}/releases/latest`, not guessed).
+  `depends_on` uses plain start-order, not `condition: service_healthy` — the
+  exporter's own `/healthz` exists for exactly this, but the Dockerfile's distroless
+  base image has no shell/curl to run a container `HEALTHCHECK` with, and switching
+  base images or shipping a separate healthcheck binary is more complexity than this
+  stage needs. Prometheus's first scrape or two may show the target down until the
+  exporter's HTTP server is ready; it self-heals within one 15s scrape interval.
+  **Not verified against real `docker compose`** — no `docker` CLI/daemon in this
+  environment (same limitation as 0001 Stage 5). All four YAML files were validated
+  for syntax (`ruby -ryaml`), and the compose/provisioning structure matches
+  Grafana's and Prometheus's standard, long-stable documented formats, but actually
+  bringing the stack up and confirming Prometheus scrapes the exporter and Grafana's
+  datasource test succeeds is unverified — needs the user to run it.
