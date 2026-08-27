@@ -1,0 +1,8 @@
+package: openapi
+generate:
+  models: true
+  client: true
+output: client_gen.go
+output-options:
+  response-type-suffix: HTTPResponse
+

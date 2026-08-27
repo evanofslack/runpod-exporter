@@ -1,6 +1,6 @@
 # 0001 — runpod-exporter v1
 
-Status: draft
+Status: in-progress (Stage 0 done)
 Scope: a standalone Prometheus exporter binary for the Runpod v2 REST API. This spec
 covers the exporter application only. Grafana dashboards and a docker-compose
 (prometheus + grafana + exporter) stack are a separate, later spec that builds on
@@ -327,3 +327,10 @@ as something checkable.
   Prometheus itself can alert on.
 - Grafana dashboards + docker-compose (prometheus + grafana + exporter) stack
   are their own spec, written after v1 is running end to end.
+- `--api-key`'s default is left blank in flag registration (unlike every other
+  flag) and applied from `RUNPOD_API_KEY` only after `flag.Parse`, so `--help`
+  never echoes a secret pulled from the environment.
+- oapi-codegen's default `{OperationId}Response` wrapper name collides with
+  several of this API's own schema names (e.g. `ListBillingResponse` is both
+  a response-envelope struct and a real schema). Fixed via
+  `output-options.response-type-suffix: HTTPResponse` in `oapi-codegen.yaml`.
