@@ -351,3 +351,12 @@ as something checkable.
   otherwise a shutdown signal would abort an in-flight poll mid-request,
   contradicting §8's "an in-flight poll finishes... not mid-request."
   Shutdown only takes effect between ticks.
+- That grace isn't unbounded: if shutdown begins while a poll is in flight,
+  it now gets `shutdownGrace` (5s, matching the HTTP server's own shutdown
+  budget) to finish on its own before `poll()` force-cancels it. Implemented
+  as a monitor goroutine per poll that `poll()` explicitly joins before
+  returning — it does not outlive the call, so it can't race a later poll's
+  (or test's) read of the timing vars. Covered by
+  `TestPoll_ForceCancelsAfterShutdownGrace` and
+  `TestPoll_FinishesWithinGraceWithoutForceCancel`, both passing under
+  `-race`.

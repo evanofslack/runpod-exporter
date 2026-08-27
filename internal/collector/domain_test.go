@@ -98,3 +98,78 @@ func TestRun_ErrorIncrementsCounterAndStaleServes(t *testing.T) {
 		t.Errorf("LastSuccessTimestamp changed on a failed poll: got %v, want %v", got, firstSuccess)
 	}
 }
+
+// withShortTimings shrinks pollTimeout/shutdownGrace for the duration of a
+// test so shutdown-grace tests don't run at real-world (15s/5s) durations.
+func withShortTimings(t *testing.T, timeout, grace time.Duration) {
+	t.Helper()
+	origTimeout, origGrace := pollTimeout, shutdownGrace
+	pollTimeout, shutdownGrace = timeout, grace
+	t.Cleanup(func() { pollTimeout, shutdownGrace = origTimeout, origGrace })
+}
+
+func TestPoll_ForceCancelsAfterShutdownGrace(t *testing.T) {
+	withShortTimings(t, time.Second, 20*time.Millisecond)
+
+	started := make(chan struct{})
+	pollCtxErr := make(chan error, 1)
+	d := &fakeDomain{name: "fake", pollFn: func(ctx context.Context) error {
+		close(started)
+		<-ctx.Done() // blocks until force-canceled
+		pollCtxErr <- ctx.Err()
+		return ctx.Err()
+	}}
+
+	parentCtx, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+	go func() {
+		<-started
+		parentCancel() // simulate shutdown while the poll is still in flight
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		poll(parentCtx, d)
+		close(done)
+	}()
+
+	select {
+	case err := <-pollCtxErr:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("ctx.Err() = %v, want context.Canceled", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("poll's context was never force-canceled after shutdownGrace")
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("poll did not return after force-cancel")
+	}
+}
+
+func TestPoll_FinishesWithinGraceWithoutForceCancel(t *testing.T) {
+	withShortTimings(t, time.Second, 200*time.Millisecond)
+
+	started := make(chan struct{})
+	canceledEarly := make(chan bool, 1)
+	d := &fakeDomain{name: "fake", pollFn: func(ctx context.Context) error {
+		close(started)
+		time.Sleep(20 * time.Millisecond) // finishes well within shutdownGrace
+		canceledEarly <- ctx.Err() != nil
+		return nil
+	}}
+
+	parentCtx, parentCancel := context.WithCancel(context.Background())
+	defer parentCancel()
+	go func() {
+		<-started
+		parentCancel()
+	}()
+
+	poll(parentCtx, d) // pollFn runs synchronously inside this call
+
+	if wasCanceled := <-canceledEarly; wasCanceled {
+		t.Error("poll's context was canceled before it finished, even though it completed within shutdownGrace")
+	}
+}

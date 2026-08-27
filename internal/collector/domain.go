@@ -21,8 +21,15 @@ const (
 )
 
 // pollTimeout bounds a single Poll call so one hung request can't wedge a
-// domain's loop forever.
-const pollTimeout = 15 * time.Second
+// domain's loop forever. shutdownGrace is how long an in-flight poll is
+// allowed to keep running after shutdown begins before it's force-canceled
+// (matches the HTTP server's own shutdown budget in main.go). Both are vars,
+// not consts, so tests can shrink them instead of running at real-world
+// durations.
+var (
+	pollTimeout   = 15 * time.Second
+	shutdownGrace = 5 * time.Second
+)
 
 type Domain interface {
 	Name() string
@@ -51,10 +58,10 @@ func Run(ctx context.Context, domains []Domain, fastInterval, slowInterval time.
 }
 
 // loop only checks for shutdown between ticks, not mid-request: an in-flight
-// poll is left to finish on its own (bounded by pollTimeout) rather than
-// being aborted the instant ctx is canceled, per §8.
+// poll is left to finish on its own rather than being aborted the instant
+// ctx is canceled, per §8 — poll itself bounds how long that grace lasts.
 func loop(ctx context.Context, d Domain, interval time.Duration) {
-	poll(d)
+	poll(ctx, d)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
@@ -62,18 +69,43 @@ func loop(ctx context.Context, d Domain, interval time.Duration) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			poll(d)
+			poll(ctx, d)
 		}
 	}
 }
 
-func poll(d Domain) {
+// poll runs one Poll call, bounded by pollTimeout from its own start
+// regardless of shutdown. If shutdown (parent ctx.Done()) begins while the
+// call is still in flight, it's given shutdownGrace more time to finish on
+// its own before being force-canceled.
+func poll(parent context.Context, d Domain) {
 	callCtx, cancel := context.WithTimeout(context.Background(), pollTimeout)
 	defer cancel()
+
+	// monitorDone is joined below rather than left to finish on its own, so
+	// this goroutine can never outlive poll() and race the next poll's (or
+	// test's) use of the package-level timing vars.
+	monitorDone := make(chan struct{})
+	go func() {
+		defer close(monitorDone)
+		select {
+		case <-callCtx.Done():
+			return
+		case <-parent.Done():
+		}
+		select {
+		case <-callCtx.Done():
+		case <-time.After(shutdownGrace):
+			cancel()
+		}
+	}()
 
 	start := time.Now()
 	err := d.Poll(callCtx)
 	elapsed := time.Since(start)
+
+	cancel() // unblock the monitor promptly regardless of why Poll returned
+	<-monitorDone
 
 	if err != nil {
 		slog.Error("poll failed", "domain", d.Name(), "elapsed_ms", elapsed.Milliseconds(), "error", err)
