@@ -1,24 +1,24 @@
 # runpod-exporter
 
-A Prometheus exporter for the [Runpod](https://runpod.io) v2 REST API, scrapes and exports pod
-utilization, serverless workers, billing, and catalog pricing.
+A Prometheus exporter for the [Runpod](https://runpod.io) v2 REST API. Scrapes and exports pod
+utilization, serverless workers, billing, catalog pricing and more.
 
 ## Run
 
 ```
-cp .env.example .env   # fill in RUNPOD_API_KEY
-just dev-up            # docker compose, or:
-just run               # go run, from source
+cp .env.example .env         # fill in RUNPOD_API_KEY
+go run ./cmd/runpod-exporter # run local go binary or
+docker compose up --build    # start with docker
 ```
 
-Use a **read-only** Runpod API key. The exporter only ever makes `GET`
+Use a **read-only** Runpod API key, the exporter only ever makes `GET`
 requests.
 
-Metrics are served at `http://localhost:9836/metrics`, health at `/healthz`.
+Metrics are served at `http://localhost:9836/metrics`
 
 ## Configuration
 
-Flags and env vars — flag wins if both are set:
+Flags and env vars (flag wins if both are set):
 
 | Flag                     | Env                           | Default                          |
 | ------------------------ | ----------------------------- | -------------------------------- |
@@ -64,9 +64,8 @@ A full stack — exporter + Prometheus + Grafana, with a dashboard already loade
 docker compose -f deploy/docker-compose.yml up
 ```
 
-Open Grafana at `http://localhost:3000` (default login `admin`/`admin`) — the
-"Runpod Exporter" dashboard is there on first boot, no import needed. See
-[plans/0002-monitoring-stack.md](plans/0002-monitoring-stack.md) for its design.
+Open Grafana at `http://localhost:3000` (default login `admin`/`admin`). The
+"Runpod Exporter" dashboard should already be loaded.
 
 ## Development
 
