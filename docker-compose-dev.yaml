@@ -1,0 +1,10 @@
+# Builds and runs from local source instead of the published image — for
+# working on the exporter itself. See docker-compose.yml for the normal path.
+services:
+  runpod-exporter:
+    build: .
+    ports:
+      - "9836:9836"
+    env_file:
+      - .env
+    restart: unless-stopped

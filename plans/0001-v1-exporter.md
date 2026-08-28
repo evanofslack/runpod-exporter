@@ -545,3 +545,12 @@ as something checkable.
   `scrape_errors_total`) remain the right way to check scrape health
   programmatically or from a dashboard; debug logging is for a human tailing
   the process.
+- Now that `evanofslack/runpod-exporter` is published to Docker Hub (the
+  user built and pushed it), the root `docker-compose.yml` switched from
+  `build: .` to `image: evanofslack/runpod-exporter:latest` — running the
+  published image is now the default path, not a local build. The old
+  build-from-source behavior moved to a new `docker-compose-dev.yaml`
+  (matching filename requested by the user), used via `just dev-up`/
+  `dev-down`; `just up`/`down` now runs the published-image compose file.
+  README restructured to match: `Run` leads with the published image,
+  `Development` at the bottom covers building from source.

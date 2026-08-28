@@ -1,9 +1,10 @@
-# Local dev only: builds and runs the exporter itself against your API key.
-# The separate prometheus+grafana+exporter stack is a later spec.
+# Runs the published image from Docker Hub. To build and run from local
+# source instead, see docker-compose-dev.yaml.
 services:
   runpod-exporter:
-    build: .
+    image: evanofslack/runpod-exporter:latest
     ports:
       - "9836:9836"
     env_file:
       - .env
+    restart: unless-stopped

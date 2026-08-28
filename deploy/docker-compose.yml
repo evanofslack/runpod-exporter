@@ -1,10 +1,8 @@
 # Full example stack: exporter + prometheus + grafana. Distinct from the
-# root docker-compose.yml, which is dev-only (the exporter alone).
+# root docker-compose.yml, which is just the exporter alone.
 services:
   runpod-exporter:
-    build:
-      context: ..
-      dockerfile: Dockerfile
+    image: evanofslack/runpod-exporter:latest
     env_file:
       - ../.env
     expose:

@@ -6,15 +6,19 @@ utilization, serverless workers, billing, catalog pricing and more.
 ## Run
 
 ```
-cp .env.example .env         # fill in RUNPOD_API_KEY
-go run ./cmd/runpod-exporter # run local go binary or
-docker compose up --build    # start with docker
+cp .env.example .env                            # fill in RUNPOD_API_KEY
+docker compose up                                # exporter alone, or:
+docker compose -f deploy/docker-compose.yml up   # full stack: exporter + Prometheus + Grafana
 ```
+
+Both pull the published image, `evanofslack/runpod-exporter`.
 
 Use a **read-only** Runpod API key, the exporter only ever makes `GET`
 requests.
 
-Metrics are served at `http://localhost:9836/metrics`
+Metrics are served at `http://localhost:9836/metrics`. For the full stack,
+open Grafana at `http://localhost:3000` (default login `admin`/`admin`) — the
+"Runpod Exporter" dashboard is already loaded, no import needed.
 
 ## Configuration
 
@@ -56,24 +60,15 @@ runpod_account_ssh_keys 1
 runpod_billing_cost_dollars{resource="pod_gpu"} 0.44
 ```
 
-## Dashboard
-
-A full stack — exporter + Prometheus + Grafana, with a dashboard already loaded:
-
-```
-docker compose -f deploy/docker-compose.yml up
-```
-
-Open Grafana at `http://localhost:3000` (default login `admin`/`admin`). The
-"Runpod Exporter" dashboard should already be loaded.
-
 ## Development
+
+Build and run from local source instead of the published image:
 
 ```
 just build     # build the binary
 just run       # go run, reads .env
-just dev-up    # docker compose up --build
-just dev-down  # docker compose down
+just dev-up    # docker compose -f docker-compose-dev.yaml up --build
+just dev-down
 just test      # run tests
 just vet       # go vet
 just fmt       # gofmt

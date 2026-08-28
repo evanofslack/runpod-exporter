@@ -6,11 +6,17 @@ build:
 run:
     go run ./cmd/runpod-exporter
 
+up:
+    docker compose up
+
+down:
+    docker compose down
+
 dev-up:
-    docker compose up --build
+    docker compose -f docker-compose-dev.yaml up --build
 
 dev-down:
-    docker compose down
+    docker compose -f docker-compose-dev.yaml down
 
 test:
     go test ./...

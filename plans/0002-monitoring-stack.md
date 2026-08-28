@@ -399,3 +399,9 @@ unaffected and untouched by this spec. What can be verified without a browser:
   agent work on this dashboard should treat the committed JSON as the user's own
   edits, not something to regenerate from scratch, and diff/preserve what's there
   rather than overwriting it.
+- `deploy/docker-compose.yml`'s exporter service switched from `build: ..` to
+  `image: evanofslack/runpod-exporter:latest`, now that the user has published
+  that image — matches the same change made to the root compose file (see
+  0001's decisions log). No local-build variant of the full stack exists; only
+  the standalone exporter compose got a dev/published split
+  (`docker-compose-dev.yaml` at repo root).
