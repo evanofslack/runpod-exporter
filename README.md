@@ -20,6 +20,8 @@ Metrics are served at `http://localhost:9836/metrics`. For the full stack,
 open Grafana at `http://localhost:3000` (default login `admin`/`admin`) — the
 "Runpod Exporter" dashboard is already loaded, no import needed.
 
+See demo snapshot of Grafana dashboard: [link](https://snapshots.raintank.io/dashboard/snapshot/l8jVMachuDZjeLiS4q4yQVdE8IhBCws1?from=2026-08-28T01:06:20.774Z&to=2026-08-28T02:06:20.774Z&timezone=utc&var-datasource=PBFA97CFB590B2093&var-pod_id=$__all&var-endpoint_id=$__all&var-cluster_id=$__all&var-catalog_gpu_id=$__all&refresh=30s)
+
 ## Configuration
 
 Flags and env vars (flag wins if both are set):
