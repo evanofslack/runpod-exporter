@@ -113,6 +113,7 @@ func poll(parent context.Context, d Domain) {
 		return
 	}
 
+	slog.Debug("poll succeeded", "domain", d.Name(), "elapsed_ms", elapsed.Milliseconds())
 	metrics.LastSuccessTimestamp.WithLabelValues(d.Name()).Set(float64(time.Now().Unix()))
 	metrics.ScrapeDuration.WithLabelValues(d.Name()).Set(elapsed.Seconds())
 }

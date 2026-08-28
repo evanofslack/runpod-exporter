@@ -534,3 +534,14 @@ as something checkable.
   though GHCR would need no extra secrets. Requires
   `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` added to the GitHub repo once it
   exists there.
+- Bug the user found running with `RUNPOD_LOG_LEVEL=debug`: no debug-level
+  output ever appeared beyond the one startup line. Root cause — there were
+  zero `slog.Debug(...)` calls anywhere in the codebase (confirmed by
+  grepping every `slog.` call site), so the level threshold had nothing to
+  actually show. Fixed with one line: `domain.go`'s `poll()` now logs
+  `"poll succeeded"` at debug level alongside the existing self-observability
+  metrics. The metrics
+  (`runpod_exporter_last_success_timestamp_seconds`/`scrape_duration_seconds`/
+  `scrape_errors_total`) remain the right way to check scrape health
+  programmatically or from a dashboard; debug logging is for a human tailing
+  the process.
