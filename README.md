@@ -6,9 +6,9 @@ utilization, serverless workers, billing, catalog pricing and more.
 ## Run
 
 ```
-cp .env.example .env                            # fill in RUNPOD_API_KEY
-docker compose up                                # exporter alone, or:
-docker compose -f deploy/docker-compose.yml up   # full stack: exporter + Prometheus + Grafana
+cp .env.example .env                           # fill in RUNPOD_API_KEY
+docker compose up                              # exporter alone, or:
+docker compose -f deploy/docker-compose.yml up # full stack: exporter + Prometheus + Grafana
 ```
 
 Both pull the published image, `evanofslack/runpod-exporter`.
@@ -17,8 +17,8 @@ Use a **read-only** Runpod API key, the exporter only ever makes `GET`
 requests.
 
 Metrics are served at `http://localhost:9836/metrics`. For the full stack,
-open Grafana at `http://localhost:3000` (default login `admin`/`admin`) — the
-"Runpod Exporter" dashboard is already loaded, no import needed.
+open Grafana at `http://localhost:3000` (default login `admin`/`admin`). The
+"Runpod Exporter" dashboard should already be loaded.
 
 See demo snapshot of Grafana dashboard: [link](https://snapshots.raintank.io/dashboard/snapshot/l8jVMachuDZjeLiS4q4yQVdE8IhBCws1?from=2026-08-28T01:06:20.774Z&to=2026-08-28T02:06:20.774Z&timezone=utc&var-datasource=PBFA97CFB590B2093&var-pod_id=$__all&var-endpoint_id=$__all&var-cluster_id=$__all&var-catalog_gpu_id=$__all&refresh=30s)
 
@@ -36,13 +36,12 @@ Flags and env vars (flag wins if both are set):
 | `--scrape-interval-slow` | `RUNPOD_SCRAPE_INTERVAL_SLOW` | `5m`                             |
 | `--log-level`            | `RUNPOD_LOG_LEVEL`            | `info`                           |
 
-Run with `--help` for details. See [plans/0001-v1-exporter.md](plans/0001-v1-exporter.md)
-for the full metric catalog and design.
+Run with `--help` for details.
 
 ## Metrics
 
 A sample — `--domains=all` exposes many more (serverless, cluster, catalog,
-registry, template, network-volume); see the spec above for the full list.
+registry, template, network-volume).
 
 ```
 # HELP runpod_pod_up 1 if the pod exists, 0 otherwise. Labeled with its current status.
